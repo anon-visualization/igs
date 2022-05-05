@@ -38,17 +38,44 @@ class DrawMovement {
      */
     setDraw(view, movementArray) {
         this.isDrawingLine = false; // always reset
+        let startTimesArray = [];
+        let endTimesArray = [];
+        let zzzRecordingCode = false;
         for (let i = 1; i < movementArray.length; i++) { // start at 1 to allow testing of current and prior indices
             const p = this.createComparePoint(view, movementArray[i], movementArray[i - 1]); // a compare point consists of current and prior augmented points
             if (this.isVisible(p.cur)) {
-                if (view === this.sk.SPACETIME) this.recordDot(p.cur);
+                if (view === this.sk.SPACETIME) {
+                    if (zzzRecordingCode === false) {
+                        zzzRecordingCode = true;
+                        startTimesArray.push(p.cur.point.time);
+                    }
+                    this.recordDot(p.cur);
+                }
                 if (p.cur.point.isStopped) this.updateStopDrawing(p, view);
                 else this.updateMovementDrawing(p, p.prior.point.isStopped, this.style.thinStroke);
             } else {
                 if (this.isDrawingLine) this.endLine();
+                if (zzzRecordingCode === true) {
+                    zzzRecordingCode = false;
+                    endTimesArray.push(p.prior.point.time);
+                }
             }
         }
         this.sk.endShape(); // end shape in case still drawing
+        if (this.sk.keyIsPressed === true && this.sk.key === 'a') this.sk.saveTable(this.writeTable(startTimesArray, endTimesArray), "codeFile", "csv");
+    }
+
+    writeTable(startTimesArray, endTimesArray) {
+        const headers = ["start", "end"];
+        let table = new p5.Table();
+        table.addColumn(headers[0]);
+        table.addColumn(headers[1]);
+        for (let i = 0; i < startTimesArray.length; i++) {
+            let newRow = table.addRow();
+            newRow.setNum(headers[0], startTimesArray[i]);
+            newRow.setNum(headers[1], endTimesArray[i]);
+        }
+        return table;
     }
 
     /**
